@@ -82,33 +82,13 @@ then copy the result dataset to our repository:
 cp -r ../HumanML3D/HumanML3D ./dataset/HumanML3D
 ```
 
-### 3. Download the pretrained models
-
-Download the model(s) you wish to use, then unzip and place them in `./save/`.
-
-Our models are all trained on the HumanML3D dataset.
-
-[Conditionally trained on randomly sampled frames and joints (CondMDI)](https://drive.google.com/file/d/1aP-z1JxSCTcUHhMqqdL2wbwQJUZWHT2j/view?usp=sharing)
-
-[Conditionally trained on randomly sampled frames](https://drive.google.com/file/d/15mYPp2U0VamWfu1SnwCukUUHczY9RPIP/view?usp=sharing)
-
-[Unconditionally (no keyframes) trained](https://drive.google.com/file/d/1B0PYpmCXXwV0a5mhkgea_J2pOwhYy-k5/view?usp=sharing)
-
-
-
-## Motion Synthesis
-<details>
-  <summary><b>Text to Motion - <u>Without</u> spatial conditioning</b></summary>
-
-This part is a standard text-to-motion generation.
-
 
 ## Training
 
 Our model is trained on the **HumanML3D** dataset.
 ### Conditional Model
 ```shell
-python -m train.train_condmdi --keyframe_conditioned
+python -m train.train_shape --keyframe_conditioned
 ```
 * You can ramove `--keyframe_conditioned` to train a unconditioned model.
 * Use `--device` to define GPU id.
