@@ -1,4 +1,12 @@
 # SHAPE
+
+## Pose Sketch Dataset
+Synthetic and hand drawn sketch data are avaliable at https://drive.google.com/file/d/1thIQ_P7E9CoFKnqL7TP1LEGBU0yEMTtv/view?usp=drive_link
+
+(a) prepare humanml3d dataset and human3.6m dataset at ./assets/datasets/*
+
+(b) unzip sketch data into ./assets/datasets/sketch_data/*
+
 ## Getting started
 
 This code was developed on `Ubuntu 20.04 LTS` with Python 3.7, CUDA 11.7 and PyTorch 1.13.1.
