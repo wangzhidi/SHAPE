@@ -1,4 +1,4 @@
-# SHAPE
+# AG-Diff
 
 ## Pose Sketch Dataset
 Synthetic and hand drawn sketch data are avaliable at https://drive.google.com/file/d/1thIQ_P7E9CoFKnqL7TP1LEGBU0yEMTtv/view?usp=drive_link
@@ -96,7 +96,7 @@ cp -r ../HumanML3D/HumanML3D ./dataset/HumanML3D
 Our model is trained on the **HumanML3D** dataset.
 ### Conditional Model
 ```shell
-python -m train.train_shape --keyframe_conditioned
+python -m train.train_ag_diff --keyframe_conditioned
 ```
 * You can ramove `--keyframe_conditioned` to train a unconditioned model.
 * Use `--device` to define GPU id.
