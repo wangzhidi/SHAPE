@@ -93,22 +93,106 @@ cp -r ../HumanML3D/HumanML3D ./dataset/HumanML3D
 
 ## Training
 
-Our model is trained on the **HumanML3D** dataset.
-### Conditional Model
+AG-Diff is trained in **two stages**.
+
+### Stage 1 — AlignNet (Sketch-Motion Shared Autoencoder)
+
+Pre-generates XYZ sketch images from the dataset, then trains the AlignNet to align sketch and joint representations in a shared latent space.
+
 ```shell
-python -m train.train_ag_diff --keyframe_conditioned
+# 1a. Pre-generate synthetic sketch images from joint XYZ data
+python draw_sketches.py
+
+# 1b. Train AlignNet (~1200 epochs)
+python train/train_align_net.py \
+    --sketch_dir  dataset/sketches \
+    --motion_dir  dataset/HumanML3D/new_joint_vecs \
+    --mean_path   dataset/HumanML3D/Mean.npy \
+    --std_path    dataset/HumanML3D/Std.npy \
+    --train_split dataset/HumanML3D/train.txt \
+    --val_split   dataset/HumanML3D/val.txt \
+    --save_dir    save/align_net \
+    --epochs      1200 \
+    --batch_size  256 \
+    --latent_dim  256 \
+    --lambda_con  0.5 \
+    --temperature 0.1
 ```
-* You can ramove `--keyframe_conditioned` to train a unconditioned model.
-* Use `--device` to define GPU id.
+
+Key arguments:
+* `--lambda_con` — weight for InfoNCE contrastive loss (default: `0.5`)
+* `--temperature` — temperature coefficient τ in InfoNCE (default: `0.1`)
+* `--joint_dim` — number of joint feature dims to use; `67` for `drop_redundant` mode (default: `67`)
+
+### Stage 2 — AG-Diff (Generation Net + Guide Net)
+
+Loads the pre-trained AlignNet and trains the full AG-Diff model with the masked diffusion loss plus the sketch keyframe loss.
+
+```shell
+python train/train_agdiff.py \
+    --dataset              humanml \
+    --abs_3d \
+    --drop_redundant \
+    --keyframe_conditioned \
+    --keyframe_selection_scheme random_frames \
+    --arch                 trans_enc \
+    --layers               8 \
+    --latent_dim           512 \
+    --ff_size              1024 \
+    --batch_size           64 \
+    --num_steps            600000 \
+    --lr                   1e-4 \
+    --align_net_path       save/align_net/align_net_best.pt \
+    --sketch_dir           dataset/sketches \
+    --lambda_sketch        0.1 \
+    --freeze_align_net \
+    --device               0
+```
+
+Key arguments:
+* `--align_net_path` — path to the Stage-1 checkpoint (required)
+* `--lambda_sketch` — weight for the sketch keyframe loss L_sketch (default: `0.1`)
+* `--freeze_align_net` — freeze AlignNet weights during Stage-2 training (recommended)
+* `--device` — GPU id
 
 ## Evaluate
-All evaluation are done on the HumanML3D dataset.
 
-### Text to Motion - <u>With</u> keyframe conditioning
+All evaluations are done on the **HumanML3D** dataset augmented with sketch data.
 
-* Takes about 20 hours (on a single GPU)
-* The output of this script for the pre-trained models (as was reported in the paper) is provided in the checkpoints zip file.
-* For each prompt, 5 keyframes are sampled from the ground truth motion. The ground locations of the root joint in those frames are used as conditions.
+### Motion Quality (Table 4) — FID, R-Precision, Diversity, Foot Skating
+
+```shell
+python eval/eval_humanml_agdiff.py \
+    --model_path      save/agdiff/model_best.pt \
+    --align_net_path  save/align_net/align_net_best.pt \
+    --sketch_dir      dataset/sketches \
+    --dataset         humanml \
+    --abs_3d \
+    --drop_redundant \
+    --num_samples     1000 \
+    --batch_size      32 \
+    --guidance_param  2.5 \
+    --output_dir      eval_results/agdiff
+```
+
+### Motion Editing / Controllability (Table 5) — Trajectory / Location / Average / Keyframe Error
+
+Pass `--edit_mode` to select the editing benchmark:
+
+```shell
+python eval/eval_humanml_agdiff.py \
+    --model_path      save/agdiff/model_best.pt \
+    --align_net_path  save/align_net/align_net_best.pt \
+    --sketch_dir      dataset/sketches \
+    --edit_mode       in_between \
+    --n_keyframes     5 \
+    --num_samples     1000 \
+    --output_dir      eval_results/agdiff_edit
+```
+
+* `--edit_mode` choices: `in_between` (default), `benchmark_sparse`, `benchmark_clip`
+* `--n_keyframes` — number of sketch-guided keyframes per clip (default: `5`)
+* Results (JSON) and motion arrays are saved to `--output_dir`
 
 
 ## Acknowledgments
